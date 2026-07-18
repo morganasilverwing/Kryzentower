@@ -21,3 +21,15 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
+
+#Created_when_App_used
+.venv/
+__pycache__/
+*.pyc
+
+logs/
+data/
+vault/
+backups/
+
+.vscode/
