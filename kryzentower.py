@@ -342,6 +342,48 @@ class KryzenTower(QWidget):
 
     def get_usb_root(self):
 
+        if getattr(
+
+            sys,
+
+            "frozen",
+
+            False
+
+        ):
+
+            executable = Path(
+
+                sys.executable
+
+            ).resolve()
+
+        else:
+
+            executable = Path(
+
+                __file__
+
+            ).resolve()
+
+        parts = executable.parts
+
+        if "media" in parts:
+
+            index = parts.index(
+
+                "media"
+
+            )
+
+            if len(parts) >= index + 3:
+
+                return Path(
+
+                    *parts[:index + 3]
+
+                )
+
         media_dir = Path("/media")
 
         if not media_dir.exists():
@@ -556,6 +598,8 @@ class KryzenTower(QWidget):
 
     def install_from_usb(self):
 
+        copied = 0
+
         selected = self.usb_list.selectedItems()
 
         if not selected:
@@ -574,7 +618,7 @@ class KryzenTower(QWidget):
 
             self.update_status(
 
-                f"Installed {copied} backup(s)"
+                "No USB device detected"
 
             )
 
@@ -644,9 +688,11 @@ class KryzenTower(QWidget):
 
         self.scan_computer()
 
-        self.status_label.setText(
+        self.scan_usb()
 
-            f"Status: Installed {copied} backup(s)"
+        self.update_status(
+
+            f"Installed {copied} backup(s)"
 
         )
 
