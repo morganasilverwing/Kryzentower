@@ -2,11 +2,13 @@
 __pycache__/
 *.py[cod]
 *.pyo
+*.pyd
 
 # Virtual environment
 .venv/
+venv/
 
-# Build artifacts
+# Build
 build/
 dist/
 *.spec
@@ -15,21 +17,9 @@ dist/
 .vscode/
 .idea/
 
-# Logs
-*.log
-
 # OS
 .DS_Store
 Thumbs.db
 
-#Created_when_App_used
-.venv/
-__pycache__/
-*.pyc
-
-logs/
-data/
-vault/
-backups/
-
-.vscode/
+# Logs
+*.log

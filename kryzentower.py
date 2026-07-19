@@ -245,23 +245,44 @@ class KryzenTower(QWidget):
 
         self.main_layout.addWidget(self.status_label)
 
-    def refresh(self):
+    def update_status(self, message=""):
+
+        computer = getattr(
+
+            self,
+
+            "computer_key_count",
+
+            0
+
+        )
+
+        usb = getattr(
+
+            self,
+
+            "usb_key_count",
+
+            0
+        )
+
+        text = f"Computer: {computer} | USB: {usb}"
+
+        if message:
+
+            text += f" | {message}"
 
         self.status_label.setText(
 
-            "Status: Refreshing..."
+            text
 
         )
+
+    def refresh(self):
 
         self.scan_computer()
 
         self.scan_usb()
-
-        self.status_label.setText(
-
-            "Status: Ready"
-
-        )
 
     def scan_computer(self):
 
@@ -271,9 +292,9 @@ class KryzenTower(QWidget):
 
         if not ssh_dir.exists():
 
-            self.status_label.setText(
+            self.update_status(
 
-                "Status: ~/.ssh not found"
+                "~/.ssh not found"
 
             )
 
@@ -315,6 +336,8 @@ class KryzenTower(QWidget):
 
             self.computer_list.addItem(key)
 
+        self.computer_key_count = len(private_keys)
+
     def get_usb_root(self):
 
         media_dir = Path("/media")
@@ -345,9 +368,9 @@ class KryzenTower(QWidget):
 
         if usb_root is None:
 
-            self.status_label.setText(
+            self.update_status(
 
-                "Status: No USB device detected"
+                "No USB device detected"
 
             )
 
@@ -357,9 +380,9 @@ class KryzenTower(QWidget):
 
         if not ssh_dir.exists():
 
-            self.status_label.setText(
+            self.update_status(
 
-                "Status: USB detected"
+                "USB detected"
 
             )
 
@@ -407,11 +430,9 @@ class KryzenTower(QWidget):
 
             self.usb_list.addItem(entry)
 
-        self.status_label.setText(
+        self.usb_key_count = len(entries)
 
-            "Status: USB scanned"
-
-        )
+        self.update_status()
 
     def backup_to_usb(self):
 
@@ -419,9 +440,9 @@ class KryzenTower(QWidget):
 
         if not selected:
 
-            self.status_label.setText(
+            self.update_status(
 
-                "Status: No SSH keys selected"
+                "No SSH keys selected"
 
             )
 
@@ -441,9 +462,9 @@ class KryzenTower(QWidget):
 
         if not ok:
 
-            self.status_label.setText(
+            self.update_status(
 
-                "Status: Backup cancelled"
+                "Backup cancelled"
 
             )
 
@@ -455,9 +476,9 @@ class KryzenTower(QWidget):
 
         if usb_root is None:
 
-            self.status_label.setText(
+            self.update_status(
 
-                "Status: No USB device detected"
+                "No USB device detected"
 
             )
 
@@ -523,13 +544,13 @@ class KryzenTower(QWidget):
 
             copied += 1
 
-        self.status_label.setText(
+        self.scan_usb()
 
-            f"Status: Backed up {copied} key(s)"
+        self.update_status(
+
+            f"Backed up {copied} key(s)"
 
         )
-
-        self.scan_usb()
 
     def install_from_usb(self):
 
@@ -537,9 +558,9 @@ class KryzenTower(QWidget):
 
         if not selected:
 
-            self.status_label.setText(
+            self.update_status(
 
-                "Status: No SSH keys selected"
+                "No SSH keys selected"
 
             )
 
@@ -549,9 +570,9 @@ class KryzenTower(QWidget):
 
         if usb_root is None:
 
-            self.status_label.setText(
+            self.update_status(
 
-                "Status: No USB device detected"
+                f"Installed {copied} backup(s)"
 
             )
 
