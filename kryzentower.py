@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 import os
 import shutil
+from PyQt6.QtGui import QIcon
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon, QPixmap
@@ -20,8 +21,9 @@ from PyQt6.QtWidgets import (
     QLineEdit,
 )
 
+
 APP_NAME = "KryzenTower"
-APP_VERSION = "1.0 Alpha"
+APP_VERSION = "V1.7.0"
 
 APP_DIR = Path(__file__).resolve().parent
 
