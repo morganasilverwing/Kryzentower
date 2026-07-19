@@ -2,6 +2,8 @@
 
 import sys
 from pathlib import Path
+import os
+import shutil
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon, QPixmap
@@ -199,6 +201,24 @@ class KryzenTower(QWidget):
 
         )
 
+        self.refresh_button.clicked.connect(
+
+            self.refresh
+
+        )
+
+        self.backup_button.clicked.connect(
+
+            self.backup_to_usb
+
+        )
+
+        self.install_button.clicked.connect(
+
+            self.install_from_usb
+
+        )
+
     def build_status(self):
 
         separator = QFrame()
@@ -210,6 +230,376 @@ class KryzenTower(QWidget):
         self.status_label = QLabel("Status: Ready")
 
         self.main_layout.addWidget(self.status_label)
+
+    def refresh(self):
+
+        self.status_label.setText(
+
+            "Status: Refreshing..."
+
+        )
+
+        self.scan_computer()
+
+        self.scan_usb()
+
+        self.status_label.setText(
+
+            "Status: Ready"
+
+        )
+
+    def scan_computer(self):
+
+        self.computer_list.clear()
+
+        ssh_dir = Path.home() / ".ssh"
+
+        if not ssh_dir.exists():
+
+            self.status_label.setText(
+
+                "Status: ~/.ssh not found"
+
+            )
+
+            return
+
+        private_keys = []
+
+        for file in ssh_dir.iterdir():
+
+            if not file.is_file():
+
+                continue
+
+            if file.suffix == ".pub":
+
+                continue
+
+            if file.name in (
+
+                "known_hosts",
+                "known_hosts.old",
+                "authorized_keys",
+                "authorized_keys2",
+                "config"
+
+            ):
+
+                continue
+
+            pub_file = ssh_dir / f"{file.name}.pub"
+
+            if pub_file.exists():
+
+                private_keys.append(file.name)
+
+        private_keys.sort()
+
+        for key in private_keys:
+
+            self.computer_list.addItem(key)
+
+    def scan_usb(self):
+
+        self.usb_list.clear()
+
+        media_dir = Path("/media")
+
+        if not media_dir.exists():
+
+            self.status_label.setText(
+
+                "Status: No USB device detected"
+
+            )
+
+            return
+
+        usb_root = None
+
+        for user_dir in media_dir.iterdir():
+
+            if not user_dir.is_dir():
+
+                continue
+
+            for device_dir in user_dir.iterdir():
+
+                if device_dir.is_dir():
+
+                    usb_root = device_dir
+
+                    break
+
+            if usb_root:
+
+                break
+
+        if usb_root is None:
+
+            self.status_label.setText(
+
+                "Status: No USB device detected"
+
+            )
+
+            return
+
+        ssh_dir = usb_root / "KryzenTower" / "SSH"
+
+        if not ssh_dir.exists():
+
+            self.status_label.setText(
+
+                "Status: USB detected"
+
+            )
+
+            return
+
+        private_keys = []
+
+        for file in ssh_dir.iterdir():
+
+            if not file.is_file():
+
+                continue
+
+            if file.suffix == ".pub":
+
+                continue
+
+            if file.name in (
+
+                "known_hosts",
+                "known_hosts.old",
+                "authorized_keys",
+                "authorized_keys2",
+                "config"
+
+            ):
+
+                continue
+
+            pub_file = ssh_dir / f"{file.name}.pub"
+
+            if pub_file.exists():
+
+                private_keys.append(file.name)
+
+        private_keys.sort()
+
+        for key in private_keys:
+
+            self.usb_list.addItem(key)
+
+        self.status_label.setText(
+
+            "Status: USB scanned"
+
+        )
+
+    def backup_to_usb(self):
+
+        selected = self.computer_list.selectedItems()
+
+        if not selected:
+
+            self.status_label.setText(
+
+                "Status: No SSH keys selected"
+
+            )
+
+            return
+
+        media_dir = Path("/media")
+
+        usb_root = None
+
+        for user_dir in media_dir.iterdir():
+
+            if not user_dir.is_dir():
+
+                continue
+
+            for device_dir in user_dir.iterdir():
+
+                if device_dir.is_dir():
+
+                    usb_root = device_dir
+
+                    break
+
+            if usb_root:
+
+                break
+
+        if usb_root is None:
+
+            self.status_label.setText(
+
+                "Status: No USB device detected"
+
+            )
+
+            return
+
+        kryzentower_dir = usb_root / "KryzenTower"
+
+        kryzentower_dir.mkdir(
+
+            exist_ok=True
+
+        )
+
+        usb_ssh = kryzentower_dir / "SSH"
+
+        usb_ssh.mkdir(
+
+            exist_ok=True
+
+        )
+
+        local_ssh = Path.home() / ".ssh"
+
+        copied = 0
+
+        for item in selected:
+
+            key = item.text()
+
+            private_key = local_ssh / key
+
+            public_key = local_ssh / f"{key}.pub"
+
+            if private_key.exists():
+
+                shutil.copy2(
+
+                    private_key,
+
+                    usb_ssh
+
+                )
+
+            if public_key.exists():
+
+                shutil.copy2(
+
+                    public_key,
+
+                    usb_ssh
+
+                )
+
+            copied += 1
+
+        self.status_label.setText(
+
+            f"Status: Backed up {copied} key(s)"
+
+        )
+
+        self.scan_usb()
+
+    def install_from_usb(self):
+
+        selected = self.usb_list.selectedItems()
+
+        if not selected:
+
+            self.status_label.setText(
+
+                "Status: No SSH keys selected"
+
+            )
+
+            return
+
+        media_dir = Path("/media")
+
+        usb_root = None
+
+        for user_dir in media_dir.iterdir():
+
+            if not user_dir.is_dir():
+
+                continue
+
+            for device_dir in user_dir.iterdir():
+
+                if device_dir.is_dir():
+
+                    usb_root = device_dir
+
+                    break
+
+            if usb_root:
+
+                break
+
+        if usb_root is None:
+
+            self.status_label.setText(
+
+                "Status: No USB device detected"
+
+            )
+
+            return
+
+        usb_ssh = usb_root / "KryzenTower" / "SSH"
+
+        local_ssh = Path.home() / ".ssh"
+
+        local_ssh.mkdir(
+
+            exist_ok=True
+
+        )
+
+        copied = 0
+
+        for item in selected:
+
+            key = item.text()
+
+            private_key = usb_ssh / key
+
+            public_key = usb_ssh / f"{key}.pub"
+
+            if private_key.exists():
+
+                shutil.copy2(
+
+                    private_key,
+
+                    local_ssh
+
+                )
+
+            if public_key.exists():
+
+                shutil.copy2(
+
+                    public_key,
+
+                    local_ssh
+
+                )
+
+            copied += 1
+
+        self.status_label.setText(
+
+            f"Status: Installed {copied} key(s)"
+
+        )
+
+        self.scan_computer()
 
 def main():
 
