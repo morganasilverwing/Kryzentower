@@ -52,6 +52,14 @@ class KryzenTower(QWidget):
 
         self.build_status()
 
+        self.create_usb_folders(
+
+            self.get_usb_root()
+
+        )
+
+        self.refresh()
+
     def build_window(self):
 
         self.setWindowTitle(APP_NAME)
@@ -116,6 +124,20 @@ class KryzenTower(QWidget):
         header_layout.addWidget(version)
 
         self.main_layout.addLayout(header_layout)
+
+    def create_usb_folders(self, usb_root):
+
+        ssh_dir = usb_root / "SSH"
+
+        ssh_dir.mkdir(
+
+            parents=True,
+
+            exist_ok=True,
+
+        )
+
+        return ssh_dir
 
     def build_computer_panel(self):
 
@@ -352,57 +374,17 @@ class KryzenTower(QWidget):
 
         ):
 
-            executable = Path(
+            return Path(
 
                 sys.executable
 
-            ).resolve()
+            ).resolve().parent
 
-        else:
+        return Path(
 
-            executable = Path(
+            __file__
 
-                __file__
-
-            ).resolve()
-
-        parts = executable.parts
-
-        if "media" in parts:
-
-            index = parts.index(
-
-                "media"
-
-            )
-
-            if len(parts) >= index + 3:
-
-                return Path(
-
-                    *parts[:index + 3]
-
-                )
-
-        media_dir = Path("/media")
-
-        if not media_dir.exists():
-
-            return None
-
-        for user_dir in media_dir.iterdir():
-
-            if not user_dir.is_dir():
-
-                continue
-
-            for device_dir in user_dir.iterdir():
-
-                if device_dir.is_dir():
-
-                    return device_dir
-
-        return None
+        ).resolve().parent
 
     def scan_usb(self):
 
@@ -420,7 +402,7 @@ class KryzenTower(QWidget):
 
             return
 
-        ssh_dir = usb_root / "KryzenTower" / "SSH"
+        ssh_dir = usb_root / "SSH"
 
         if not ssh_dir.exists():
 
@@ -518,6 +500,12 @@ class KryzenTower(QWidget):
 
         usb_root = self.get_usb_root()
 
+        usb_ssh = self.create_usb_folders(
+
+            usb_root
+
+        )
+
         if usb_root is None:
 
             self.update_status(
@@ -528,27 +516,13 @@ class KryzenTower(QWidget):
 
             return
 
-        kryzentower_dir = usb_root / "KryzenTower"
-
-        kryzentower_dir.mkdir(
-
-            exist_ok=True
-
-        )
-
-        usb_ssh = kryzentower_dir / "SSH"
-
-        usb_ssh.mkdir(
-
-            exist_ok=True
-
-        )
-
         if backup_name:
 
             usb_ssh = usb_ssh / backup_name
 
             usb_ssh.mkdir(
+
+                parents=True,
 
                 exist_ok=True
 
@@ -624,7 +598,7 @@ class KryzenTower(QWidget):
 
             return
 
-        usb_ssh = usb_root / "KryzenTower" / "SSH"
+        usb_ssh = usb_root / "SSH"
 
         local_ssh = Path.home() / ".ssh"
 
