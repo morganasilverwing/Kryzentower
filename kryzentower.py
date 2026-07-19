@@ -129,13 +129,15 @@ class KryzenTower(QWidget):
 
         ssh_dir = usb_root / "SSH"
 
-        ssh_dir.mkdir(
+        if not ssh_dir.exists():
 
-            parents=True,
+            ssh_dir.mkdir(
 
-            exist_ok=True,
+                parents=True,
 
-        )
+                exist_ok=True,
+
+            )
 
         return ssh_dir
 
