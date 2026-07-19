@@ -16,6 +16,8 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QFrame,
+    QInputDialog,
+    QLineEdit,
 )
 
 APP_NAME = "KryzenTower"
@@ -137,6 +139,12 @@ class KryzenTower(QWidget):
 
         self.computer_list = QListWidget()
 
+        self.computer_list.setSelectionMode(
+
+            QListWidget.SelectionMode.MultiSelection
+
+        )
+
         layout.addWidget(self.computer_list)
 
         self.main_layout.addWidget(frame)
@@ -164,6 +172,12 @@ class KryzenTower(QWidget):
         layout.addWidget(title)
 
         self.usb_list = QListWidget()
+
+        self.usb_list.setSelectionMode(
+
+            QListWidget.SelectionMode.MultiSelection
+
+        )
 
         layout.addWidget(self.usb_list)
 
@@ -301,23 +315,13 @@ class KryzenTower(QWidget):
 
             self.computer_list.addItem(key)
 
-    def scan_usb(self):
-
-        self.usb_list.clear()
+    def get_usb_root(self):
 
         media_dir = Path("/media")
 
         if not media_dir.exists():
 
-            self.status_label.setText(
-
-                "Status: No USB device detected"
-
-            )
-
-            return
-
-        usb_root = None
+            return None
 
         for user_dir in media_dir.iterdir():
 
@@ -329,13 +333,15 @@ class KryzenTower(QWidget):
 
                 if device_dir.is_dir():
 
-                    usb_root = device_dir
+                    return device_dir
 
-                    break
+        return None
 
-            if usb_root:
+    def scan_usb(self):
 
-                break
+        self.usb_list.clear()
+
+        usb_root = self.get_usb_root()
 
         if usb_root is None:
 
@@ -359,19 +365,25 @@ class KryzenTower(QWidget):
 
             return
 
-        private_keys = []
+        entries = []
 
-        for file in ssh_dir.iterdir():
+        for item in ssh_dir.iterdir():
 
-            if not file.is_file():
+            if item.is_dir():
 
-                continue
-
-            if file.suffix == ".pub":
+                entries.append(item.name)
 
                 continue
 
-            if file.name in (
+            if not item.is_file():
+
+                continue
+
+            if item.suffix == ".pub":
+
+                continue
+
+            if item.name in (
 
                 "known_hosts",
                 "known_hosts.old",
@@ -383,17 +395,17 @@ class KryzenTower(QWidget):
 
                 continue
 
-            pub_file = ssh_dir / f"{file.name}.pub"
+            pub_file = ssh_dir / f"{item.name}.pub"
 
             if pub_file.exists():
 
-                private_keys.append(file.name)
+                entries.append(item.name)
 
-        private_keys.sort()
+        entries.sort()
 
-        for key in private_keys:
+        for entry in entries:
 
-            self.usb_list.addItem(key)
+            self.usb_list.addItem(entry)
 
         self.status_label.setText(
 
@@ -415,27 +427,31 @@ class KryzenTower(QWidget):
 
             return
 
-        media_dir = Path("/media")
+        backup_name, ok = QInputDialog.getText(
 
-        usb_root = None
+            self,
 
-        for user_dir in media_dir.iterdir():
+            "Backup SSH Keys",
 
-            if not user_dir.is_dir():
+            "Backup name (optional):",
 
-                continue
+            QLineEdit.EchoMode.Normal
 
-            for device_dir in user_dir.iterdir():
+        )
 
-                if device_dir.is_dir():
+        if not ok:
 
-                    usb_root = device_dir
+            self.status_label.setText(
 
-                    break
+                "Status: Backup cancelled"
 
-            if usb_root:
+            )
 
-                break
+            return
+
+        backup_name = backup_name.strip()
+
+        usb_root = self.get_usb_root()
 
         if usb_root is None:
 
@@ -462,6 +478,16 @@ class KryzenTower(QWidget):
             exist_ok=True
 
         )
+
+        if backup_name:
+
+            usb_ssh = usb_ssh / backup_name
+
+            usb_ssh.mkdir(
+
+                exist_ok=True
+
+            )
 
         local_ssh = Path.home() / ".ssh"
 
@@ -519,27 +545,7 @@ class KryzenTower(QWidget):
 
             return
 
-        media_dir = Path("/media")
-
-        usb_root = None
-
-        for user_dir in media_dir.iterdir():
-
-            if not user_dir.is_dir():
-
-                continue
-
-            for device_dir in user_dir.iterdir():
-
-                if device_dir.is_dir():
-
-                    usb_root = device_dir
-
-                    break
-
-            if usb_root:
-
-                break
+        usb_root = self.get_usb_root()
 
         if usb_root is None:
 
@@ -565,11 +571,31 @@ class KryzenTower(QWidget):
 
         for item in selected:
 
-            key = item.text()
+            name = item.text()
 
-            private_key = usb_ssh / key
+            folder = usb_ssh / name
 
-            public_key = usb_ssh / f"{key}.pub"
+            if folder.is_dir():
+
+                for file in folder.iterdir():
+
+                    if file.is_file():
+
+                        shutil.copy2(
+
+                            file,
+
+                            local_ssh
+
+                        )
+
+                copied += 1
+
+                continue
+
+            private_key = usb_ssh / name
+
+            public_key = usb_ssh / f"{name}.pub"
 
             if private_key.exists():
 
@@ -593,13 +619,13 @@ class KryzenTower(QWidget):
 
             copied += 1
 
+        self.scan_computer()
+
         self.status_label.setText(
 
-            f"Status: Installed {copied} key(s)"
+            f"Status: Installed {copied} backup(s)"
 
         )
-
-        self.scan_computer()
 
 def main():
 
